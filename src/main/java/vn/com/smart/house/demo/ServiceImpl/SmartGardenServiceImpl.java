@@ -1,6 +1,5 @@
 package vn.com.smart.house.demo.ServiceImpl;
 
-import jdk.net.SocketFlow;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -11,16 +10,15 @@ import vn.com.smart.house.demo.Model.WeatherInfo;
 import vn.com.smart.house.demo.Repository.ControlRepository;
 import vn.com.smart.house.demo.Repository.GardenRepository;
 import vn.com.smart.house.demo.Repository.SmartRepository;
-import vn.com.smart.house.demo.Service.SmartHouseService;
-import vn.com.smart.house.demo.config.Application;
+import vn.com.smart.house.demo.Service.SmartGardenService;
+import vn.com.smart.house.demo.MQTT.Application;
 
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Service
-public class SmartHouseServiceImpl implements SmartHouseService {
+public class SmartGardenServiceImpl implements SmartGardenService {
 
     private GardenRepository gardenRepository;
     private ControlRepository controlRepository;
@@ -29,7 +27,7 @@ public class SmartHouseServiceImpl implements SmartHouseService {
 
 
     @Autowired
-    public SmartHouseServiceImpl(GardenRepository gardenRepository, ControlRepository controlRepository, SmartRepository smartRepository,Application application) {
+    public SmartGardenServiceImpl(GardenRepository gardenRepository, ControlRepository controlRepository, SmartRepository smartRepository, Application application) {
         this.gardenRepository = gardenRepository;
         this.controlRepository = controlRepository;
         this.smartRepository = smartRepository;
@@ -46,7 +44,7 @@ public class SmartHouseServiceImpl implements SmartHouseService {
         Control control1 = controlOptional.get();
         control1.setStatusLed(StatusLed.on);
         try {
-            application.publish( ledNumber+","+status);
+            application.publish( ledNumber+"/"+status);
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -56,7 +54,7 @@ public class SmartHouseServiceImpl implements SmartHouseService {
 
 
     @Override
-    public String deleteWhere(Long id) {
+    public String deleteWeather(Long id) {
         smartRepository.deleteAll();
         return null;
     }
@@ -71,7 +69,7 @@ public class SmartHouseServiceImpl implements SmartHouseService {
         Control control1 = controlOptional.get();
         control1.setStatusLed(StatusLed.off);
         try {
-            application.publish(ledNumber+","+statusLed);
+            application.publish(ledNumber+"/"+statusLed);
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -134,6 +132,21 @@ public class SmartHouseServiceImpl implements SmartHouseService {
 //       return weatherInfo;
         return null;
     }
+
+    @Override
+    public List<Control> getControls() {
+        return controlRepository.findAll();
+    }
+
+    @Override
+    public void autoWatering(double humidity) throws MqttException {
+        Long sprinkler = 16L;
+        if(humidity < 50)
+            application.publish(sprinkler + "/on");
+        else if(humidity > 80)
+            application.publish(sprinkler + "/off");
+    }
+
     private void start(){
 
         Garden garden = new Garden();

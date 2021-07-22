@@ -1,19 +1,17 @@
-package vn.com.smart.house.demo.config;
+package vn.com.smart.house.demo.MQTT;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.SneakyThrows;
 import org.eclipse.paho.client.mqttv3.*;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import org.eclipse.paho.client.mqttv3.*;
+
 import vn.com.smart.house.demo.Model.JsonMap;
 import vn.com.smart.house.demo.Model.WeatherInfo;
 import vn.com.smart.house.demo.Repository.GardenRepository;
 import vn.com.smart.house.demo.Repository.SmartRepository;
+import vn.com.smart.house.demo.Service.SmartGardenService;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.*;
@@ -24,15 +22,15 @@ public class Application {
     private SmartRepository smartRepository;
     @Autowired
     private GardenRepository gardenRepository;
-    final String serverUrl = "tcp://broker.mqttdashboard.com:1883";     /* ssl://mqtt.cumulocity.com:8883 for a secure connection */
+    @Autowired
+    private SmartGardenService smartGardenService;
+
+    final String serverUrl = "tcp://broker.hivemq.com";     /* ssl://mqtt.cumulocity.com:8883 for a secure connection */
     final String clientId = "sonnguyen-99";
-    final String device_name = "My Java MQTT device";
     final String username = "ohtech.vn";
     final String password = "66668888";
     final String MQTT_TOPIC ="N11/dht11/humidity-temperature";
-    final String MQTT_TEMPERATURE_TOPIC = "N11/dht11/temperature";
-    final String MQTT_HUMIDITY_TOPIC = "N11/dht11/humidity";
-    final String MQTT_LED_TOPIC = "N11/led";
+    final String MQTT_LED_TOPIC = "N11/led/ffff";
     private MqttClient client = null;
 
     @PostConstruct
@@ -45,21 +43,6 @@ public class Application {
         client.connect(options);
         System.out.println(client+": is ready");
         subscribeTem();
-//        Thread.sleep(10000);
-//        do {
-//            Thread.sleep(1000);
-//            this.publish("RED");
-//            String[] tem =   this.subscribe();
-//            for (String tems:tem){
-//                if (tems!=null)
-//                System.out.println("tem {} " +tems);
-//            }
-//
-//        }while (1==1);
-
-
-
-
     }
 
     public void publish(String message) throws MqttException {
@@ -86,7 +69,7 @@ public class Application {
                             weatherInfo.setGarden(gardenRepository.findById(1l).get());
                             System.out.println(weatherInfo.toString());
                             smartRepository.save(weatherInfo);
-
+                            smartGardenService.autoWatering(jsonMap.getHumidity());
                         }
                     });
                 } catch (MqttException e) {
